@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Analytics Dashboard — Integration Guide</title>
+  <style>
+    /* ── Base ── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.6;
+      color: #1a1a2e;
+      background: #fff;
+    }
+
+    /* ── Print settings ── */
+    @page {
+      size: A4;
+      margin: 18mm 16mm 18mm 16mm;
+    }
+    @media print {
+      .no-print { display: none !important; }
+      .page-break { page-break-before: always; }
+      .avoid-break { page-break-inside: avoid; }
+      body { font-size: 9.5pt; }
+    }
+
+    /* ── Print button ── */
+    .print-bar {
+      position: fixed; top: 0; left: 0; right: 0;
+      background: #4f46e5; color: #fff;
+      padding: 10px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      z-index: 999; box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    .print-bar p { font-size: 13px; font-weight: 600; }
+    .print-bar button {
+      background: #fff; color: #4f46e5;
+      border: none; border-radius: 8px;
+      padding: 8px 20px; font-size: 13px; font-weight: 700;
+      cursor: pointer; letter-spacing: .3px;
+    }
+    .print-bar button:hover { background: #e0e7ff; }
+
+    /* ── Wrapper ── */
+    .doc { max-width: 800px; margin: 0 auto; padding: 60px 24px 40px; }
+    @media print { .doc { padding: 0; max-width: 100%; } }
+
+    /* ── Cover ── */
+    .cover {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: #fff; border-radius: 16px;
+      padding: 48px 48px 40px;
+      margin-bottom: 36px;
+    }
+    @media print { .cover { border-radius: 8px; } }
+    .cover-tag {
+      display: inline-block;
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 20px; padding: 4px 14px;
+      font-size: 9pt; font-weight: 600;
+      letter-spacing: .6px; text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .cover h1 {
+      font-size: 26pt; font-weight: 800; line-height: 1.2;
+      margin-bottom: 12px; letter-spacing: -.5px;
+    }
+    .cover p { font-size: 11pt; opacity: .85; max-width: 520px; line-height: 1.55; }
+    .cover-meta {
+      display: flex; gap: 24px; margin-top: 32px;
+      border-top: 1px solid rgba(255,255,255,.2); padding-top: 20px;
+    }
+    .cover-meta-item { font-size: 9pt; }
+    .cover-meta-item span { display: block; opacity: .6; font-size: 8pt; text-transform: uppercase; letter-spacing: .5px; }
+
+    /* ── Section headings ── */
+    h2 {
+      font-size: 15pt; font-weight: 800; color: #1e1b4b;
+      margin: 36px 0 16px; padding-bottom: 8px;
+      border-bottom: 3px solid #e0e7ff;
+      display: flex; align-items: center; gap: 10px;
+    }
+    h2 .phase-num {
+      background: #4f46e5; color: #fff;
+      width: 30px; height: 30px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12pt; font-weight: 800; flex-shrink: 0;
+    }
+    h3 {
+      font-size: 11.5pt; font-weight: 700; color: #312e81;
+      margin: 22px 0 10px;
+    }
+    h4 {
+      font-size: 10pt; font-weight: 700; color: #4338ca;
+      margin: 16px 0 8px;
+    }
+    p { margin-bottom: 10px; color: #374151; }
+
+    /* ── People cards ── */
+    .people-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+      margin: 18px 0;
+    }
+    .person-card {
+      border: 2px solid #e0e7ff; border-radius: 12px; padding: 16px;
+      text-align: center;
+    }
+    .person-avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      margin: 0 auto 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18pt;
+    }
+    .person-card h4 { margin: 0 0 4px; font-size: 10pt; color: #1e1b4b; text-align: center; }
+    .person-card p { font-size: 8.5pt; color: #6b7280; margin: 0; text-align: center; }
+    .avatar-you { background: #ede9fe; }
+    .avatar-seo { background: #d1fae5; }
+    .avatar-dev { background: #dbeafe; }
+
+    /* ── Step cards ── */
+    .step {
+      border-radius: 12px; padding: 18px 20px; margin: 14px 0;
+      border-left: 5px solid #4f46e5;
+      background: #f8f7ff;
+    }
+    .step.green { border-left-color: #10b981; background: #f0fdf4; }
+    .step.amber { border-left-color: #f59e0b; background: #fffbeb; }
+    .step.red   { border-left-color: #ef4444; background: #fff5f5; }
+    .step.blue  { border-left-color: #3b82f6; background: #eff6ff; }
+    .step.purple{ border-left-color: #8b5cf6; background: #faf5ff; }
+
+    .step-header {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+    }
+    .step-num {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: #4f46e5; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10pt; font-weight: 800; flex-shrink: 0;
+    }
+    .step.green .step-num  { background: #10b981; }
+    .step.amber .step-num  { background: #f59e0b; }
+    .step.red   .step-num  { background: #ef4444; }
+    .step.blue  .step-num  { background: #3b82f6; }
+    .step.purple .step-num { background: #8b5cf6; }
+
+    .step-title { font-size: 11pt; font-weight: 700; color: #1e1b4b; }
+    .step-who {
+      margin-left: auto; font-size: 7.5pt; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .5px;
+      padding: 2px 10px; border-radius: 20px;
+    }
+    .who-you   { background: #ede9fe; color: #6d28d9; }
+    .who-seo   { background: #d1fae5; color: #065f46; }
+    .who-dev   { background: #dbeafe; color: #1d4ed8; }
+    .who-all   { background: #fce7f3; color: #9d174d; }
+
+    .step p, .step ul, .step ol { margin-left: 36px; }
+    .step ul, .step ol { padding-left: 18px; margin-top: 6px; }
+    .step li { margin-bottom: 5px; font-size: 9.5pt; color: #374151; }
+
+    /* ── Code blocks ── */
+    .code-block {
+      background: #1e1b4b; color: #a5f3fc;
+      border-radius: 8px; padding: 14px 16px;
+      font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+      font-size: 8.5pt; line-height: 1.6;
+      margin: 10px 0 10px 36px;
+      overflow: hidden; white-space: pre-wrap; word-break: break-all;
+    }
+    .code-block .comment { color: #6b7280; }
+    .code-block .key { color: #fbbf24; }
+    .code-block .val { color: #34d399; }
+
+    /* ── Info boxes ── */
+    .info-box {
+      border-radius: 10px; padding: 14px 16px; margin: 12px 0;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .info-box.tip   { background: #ecfdf5; border: 1px solid #6ee7b7; }
+    .info-box.warn  { background: #fffbeb; border: 1px solid #fcd34d; }
+    .info-box.alert { background: #fff1f2; border: 1px solid #fda4af; }
+    .info-box .icon { font-size: 16pt; flex-shrink: 0; line-height: 1; }
+    .info-box p     { margin: 0; font-size: 9.5pt; color: #374151; }
+    .info-box strong { color: #1a1a2e; }
+
+    /* ── Tables ── */
+    table {
+      width: 100%; border-collapse: collapse;
+      margin: 14px 0; font-size: 9.5pt;
+    }
+    thead tr { background: #4f46e5; color: #fff; }
+    thead th {
+      padding: 10px 14px; text-align: left;
+      font-size: 8pt; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+    }
+    tbody tr { border-bottom: 1px solid #e5e7eb; }
+    tbody tr:nth-child(even) { background: #f8f7ff; }
+    tbody td { padding: 9px 14px; color: #374151; vertical-align: top; }
+    .badge {
+      display: inline-block; border-radius: 20px; padding: 2px 10px;
+      font-size: 8pt; font-weight: 700;
+    }
+    .badge-green  { background: #d1fae5; color: #065f46; }
+    .badge-red    { background: #fee2e2; color: #b91c1c; }
+    .badge-amber  { background: #fef3c7; color: #92400e; }
+    .badge-indigo { background: #e0e7ff; color: #3730a3; }
+    .badge-gray   { background: #f3f4f6; color: #374151; }
+
+    /* ── Timeline ── */
+    .timeline { margin: 18px 0; }
+    .timeline-item {
+      display: flex; gap: 16px; margin-bottom: 18px;
+    }
+    .timeline-left { display: flex; flex-direction: column; align-items: center; }
+    .timeline-dot {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #4f46e5; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10pt; font-weight: 800; flex-shrink: 0;
+    }
+    .timeline-line {
+      width: 2px; background: #e0e7ff; flex: 1; margin-top: 4px;
+    }
+    .timeline-content {
+      flex: 1; background: #f8f7ff; border-radius: 10px;
+      padding: 14px 16px; margin-bottom: 4px;
+    }
+    .timeline-week {
+      font-size: 8pt; font-weight: 700; color: #6d28d9;
+      text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px;
+    }
+    .timeline-title { font-size: 10.5pt; font-weight: 700; color: #1e1b4b; margin-bottom: 6px; }
+    .timeline-tasks { list-style: none; padding: 0; margin: 0; }
+    .timeline-tasks li { font-size: 9pt; color: #4b5563; padding: 2px 0; }
+    .timeline-tasks li::before { content: "→ "; color: #4f46e5; font-weight: 700; }
+    .timeline-who-row { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+
+    /* ── Keyword section specifics ── */
+    .kw-source-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0;
+    }
+    .kw-source {
+      border: 2px solid #e0e7ff; border-radius: 12px; padding: 16px;
+    }
+    .kw-source h4 { margin: 0 0 8px; font-size: 10pt; }
+    .kw-source p { font-size: 9pt; color: #6b7280; margin: 0 0 8px; }
+    .kw-source .free { background: #d1fae5; color: #065f46; border-radius: 6px; padding: 2px 8px; font-size: 8pt; font-weight: 700; display: inline-block; margin-bottom: 6px; }
+    .kw-source .paid { background: #fef3c7; color: #92400e; border-radius: 6px; padding: 2px 8px; font-size: 8pt; font-weight: 700; display: inline-block; margin-bottom: 6px; }
+
+    /* ── Message template ── */
+    .message-box {
+      background: #1e1b4b; color: #e0e7ff;
+      border-radius: 12px; padding: 22px 24px; margin: 16px 0;
+      font-size: 9.5pt; line-height: 1.7;
+    }
+    .message-box .msg-label {
+      font-size: 8pt; font-weight: 700; color: #818cf8;
+      text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px;
+    }
+    .message-box .highlight { color: #fbbf24; font-weight: 600; }
+
+    /* ── Footer ── */
+    .doc-footer {
+      text-align: center; margin-top: 48px; padding-top: 20px;
+      border-top: 2px solid #e0e7ff; font-size: 8.5pt; color: #9ca3af;
+    }
+
+    /* ── Checklist ── */
+    .checklist { list-style: none; padding: 0; margin: 10px 0 10px 36px; }
+    .checklist li {
+      padding: 5px 0 5px 28px; position: relative;
+      font-size: 9.5pt; color: #374151; border-bottom: 1px dashed #e5e7eb;
+    }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist li::before {
+      content: "☐";
+      position: absolute; left: 0; top: 5px;
+      font-size: 12pt; color: #a5b4fc;
+    }
+
+    /* ── Divider ── */
+    hr { border: none; border-top: 2px dashed #e0e7ff; margin: 32px 0; }
+  </style>
+</head>
+<body>
+
+<!-- Print bar (hidden when printing) -->
+<div class="print-bar no-print">
+  <p>📄 Analytics Dashboard — Integration Guide</p>
+  <button onclick="window.print()">⬇ Save as PDF</button>
+</div>
+
+<div class="doc">
+
+  <!-- ══ COVER ══ -->
+  <div class="cover">
+    <div class="cover-tag">Confidential — Internal Setup Guide</div>
+    <h1>Analytics Central Dashboard<br>Integration Guide</h1>
+    <p>Step-by-step instructions for connecting Google Analytics GA4, Google Search Console keyword rankings, and your booking engine to the central analytics dashboard.</p>
+    <div class="cover-meta">
+      <div class="cover-meta-item"><span>Prepared for</span>Agency Management & SEO Director</div>
+      <div class="cover-meta-item"><span>Dashboard</span>Multi-Chain Hotel Analytics (800+ Properties)</div>
+      <div class="cover-meta-item"><span>Tech Stack</span>Next.js · GA4 API · Search Console API</div>
+      <div class="cover-meta-item"><span>Est. Go-Live</span>4–6 Weeks</div>
+    </div>
+  </div>
+
+
+  <!-- ══ PEOPLE INVOLVED ══ -->
+  <h2><span class="phase-num">👥</span> People Involved</h2>
+  <p>Three people drive this integration. Each step below is labelled with who is responsible.</p>
+
+  <div class="people-grid">
+    <div class="person-card">
+      <div class="person-avatar avatar-you">👤</div>
+      <h4>You</h4>
+      <p>Agency Owner / Director<br>Approves access, reviews output, sends instructions to team</p>
+    </div>
+    <div class="person-card">
+      <div class="person-avatar avatar-seo">🔍</div>
+      <h4>SEO Director</h4>
+      <p>Has admin access to all client GA4 properties and Search Console accounts. Grants permissions.</p>
+    </div>
+    <div class="person-card">
+      <div class="person-avatar avatar-dev">💻</div>
+      <h4>Developer</h4>
+      <p>Builds the API connections, database sync, and deployment. Works from the GitHub repo.</p>
+    </div>
+  </div>
+
+  <div class="info-box warn">
+    <div class="icon">⚠️</div>
+    <p><strong>Before you start:</strong> Make sure your SEO Director has <strong>Admin</strong> level access in Google Analytics and <strong>Owner</strong> or <strong>Full User</strong> access in Google Search Console for all client properties. Without this, they cannot add the service account.</p>
+  </div>
+
+
+  <!-- ══ PHASE 1 ══ -->
+  <div class="page-break"></div>
+  <h2><span class="phase-num">1</span> Google Analytics — Traffic Data</h2>
+  <p>This connects your GA4 properties to the dashboard so it can show sessions, organic traffic, bounce rate, new vs returning users, and conversion data — compared to last month and last year.</p>
+
+  <!-- Step 1 -->
+  <div class="step blue avoid-break">
+    <div class="step-header">
+      <div class="step-num">1</div>
+      <div class="step-title">Developer creates a Google Cloud Project & Service Account</div>
+      <span class="step-who who-dev">Developer</span>
+    </div>
+    <p>A service account is a robot email address that the dashboard uses to read data from Google APIs. It has no password and can only do what you explicitly allow.</p>
+    <ol>
+      <li>Go to <strong>console.cloud.google.com</strong> and sign in with the agency Google account</li>
+      <li>Click <strong>New Project</strong> → name it <em>"Agency Analytics Dashboard"</em></li>
+      <li>Go to <strong>APIs & Services → Library</strong></li>
+      <li>Search and enable: <strong>"Google Analytics Data API"</strong></li>
+      <li>Also enable: <strong>"Google Search Console API"</strong></li>
+      <li>Go to <strong>IAM & Admin → Service Accounts → Create Service Account</strong></li>
+      <li>Name it: <em>analytics-dashboard</em> → click Create</li>
+      <li>Skip the optional steps → click Done</li>
+      <li>Click the new service account → <strong>Keys tab → Add Key → JSON</strong></li>
+      <li>A JSON file downloads — store it securely (this is the credential file)</li>
+    </ol>
+    <p style="margin-top:10px;"><strong>Developer then sends the SEO Director this email address</strong> (found in the JSON file):</p>
+    <div class="code-block"><span class="key">Service Account Email:</span>
+<span class="val">analytics-dashboard@agency-analytics.iam.gserviceaccount.com</span>
+
+<span class="comment"># This email gets added to every GA4 property and Search Console site</span></div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="step green avoid-break">
+    <div class="step-header">
+      <div class="step-num">2</div>
+      <div class="step-title">SEO Director adds service account to every GA4 property</div>
+      <span class="step-who who-seo">SEO Director</span>
+    </div>
+    <p>This must be done for every client property that needs to appear in the dashboard. It gives the dashboard read-only access to that property's data.</p>
+    <ol>
+      <li>Log into <strong>analytics.google.com</strong></li>
+      <li>Select the first client property from the top dropdown</li>
+      <li>Go to <strong>Admin</strong> (bottom left gear icon)</li>
+      <li>Under <strong>Property</strong> column → click <strong>"Property Access Management"</strong></li>
+      <li>Click the blue <strong>+ Add</strong> button (top right)</li>
+      <li>Paste the service account email provided by the developer</li>
+      <li>Set role to <strong>Viewer</strong> (read-only — safe)</li>
+      <li>Click <strong>Add</strong></li>
+      <li>Repeat for every client property</li>
+    </ol>
+    <div class="info-box tip" style="margin-left:36px;">
+      <div class="icon">💡</div>
+      <p><strong>For 800+ properties (bulk method):</strong> Instead of doing this manually, ask the developer to write a script using the GA4 Admin API that adds the service account to all properties at once. Provide the developer with a spreadsheet of all GA4 Property IDs (found in GA4 → Admin → Property Settings → Property ID — a 9-digit number).</p>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="step blue avoid-break">
+    <div class="step-header">
+      <div class="step-num">3</div>
+      <div class="step-title">SEO Director exports the GA4 Property ID list</div>
+      <span class="step-who who-seo">SEO Director</span>
+    </div>
+    <p>The developer needs a master list of all properties to build the dashboard. The SEO Director prepares a spreadsheet with the following columns:</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Column</th>
+          <th>Example Value</th>
+          <th>Where to Find It</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Property Name</strong></td><td>Meridian London Hyde Park</td><td>GA4 property name</td></tr>
+        <tr><td><strong>GA4 Property ID</strong></td><td>123456789</td><td>GA4 → Admin → Property Settings</td></tr>
+        <tr><td><strong>Website URL</strong></td><td>https://meridian-london.com</td><td>Hotel website</td></tr>
+        <tr><td><strong>Chain / Brand</strong></td><td>Meridian</td><td>Your internal grouping</td></tr>
+        <tr><td><strong>Location</strong></td><td>London, UK</td><td>Hotel location</td></tr>
+      </tbody>
+    </table>
+    <p>Send this spreadsheet to the developer. This becomes the master property database.</p>
+  </div>
+
+
+  <!-- ══ PHASE 2 ══ -->
+  <div class="page-break"></div>
+  <h2><span class="phase-num">2</span> Keyword Rankings — Google Search Console</h2>
+  <p>Google Search Console is the <strong>official, free, and most accurate</strong> source for keyword rankings. It shows exactly which keywords your pages rank for, their position, clicks, and impressions — sourced directly from Google.</p>
+
+  <div class="kw-source-grid">
+    <div class="kw-source">
+      <div class="free">FREE</div>
+      <h4>Google Search Console API</h4>
+      <p>Official Google source. Shows keywords ranking for each property, position, clicks, impressions, and CTR. Best starting point.</p>
+      <ul style="font-size:9pt; color:#374151; padding-left:16px;">
+        <li>Query (keyword)</li>
+        <li>Average position</li>
+        <li>Clicks & Impressions</li>
+        <li>Click-through rate</li>
+        <li>Ranking URL (which page ranks)</li>
+      </ul>
+    </div>
+    <div class="kw-source">
+      <div class="paid">PAID ADD-ON</div>
+      <h4>SEMrush / Ahrefs / SE Ranking</h4>
+      <p>Third-party tools that add competitor keyword data, search volume, keyword difficulty, and historical tracking.</p>
+      <ul style="font-size:9pt; color:#374151; padding-left:16px;">
+        <li>Competitor keyword gaps</li>
+        <li>Search volume per keyword</li>
+        <li>Keyword difficulty score</li>
+        <li>Position history over time</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="info-box tip">
+    <div class="icon">✅</div>
+    <p><strong>Recommendation:</strong> Start with Google Search Console (free). Once the dashboard is live, layer in SEMrush or Ahrefs for competitor tracking and search volume. The dashboard is already built to display both.</p>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="step green avoid-break">
+    <div class="step-header">
+      <div class="step-num">4</div>
+      <div class="step-title">SEO Director adds service account to every Search Console property</div>
+      <span class="step-who who-seo">SEO Director</span>
+    </div>
+    <p>The same service account email used for GA4 also gets added to Search Console. This gives the dashboard access to keyword ranking data for each hotel website.</p>
+    <ol>
+      <li>Go to <strong>search.google.com/search-console</strong></li>
+      <li>Select the first client website from the property dropdown</li>
+      <li>Click <strong>Settings</strong> (gear icon, left sidebar)</li>
+      <li>Click <strong>"Users and permissions"</strong></li>
+      <li>Click <strong>"Add User"</strong></li>
+      <li>Paste the service account email</li>
+      <li>Set permission to <strong>Full</strong> (required for reading query/keyword data)</li>
+      <li>Click <strong>Add</strong></li>
+      <li>Repeat for every client website</li>
+    </ol>
+    <div class="info-box warn" style="margin-left:36px;">
+      <div class="icon">⚠️</div>
+      <p><strong>Note:</strong> The Search Console property must be <strong>verified</strong> (green tick) for the data to be accessible. If any client site is unverified, work with the developer to complete domain verification first. Common methods: Google Tag Manager, DNS record, or HTML file upload.</p>
+    </div>
+  </div>
+
+  <!-- Step 5 -->
+  <div class="step green avoid-break">
+    <div class="step-header">
+      <div class="step-num">5</div>
+      <div class="step-title">SEO Director exports the Search Console site list</div>
+      <span class="step-who who-seo">SEO Director</span>
+    </div>
+    <p>Add a <strong>Search Console URL</strong> column to the same property spreadsheet from Step 3:</p>
+    <table>
+      <thead>
+        <tr><th>Property Name</th><th>GA4 Property ID</th><th>Search Console URL</th><th>Chain</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Meridian London Hyde Park</td><td>123456789</td><td>https://meridian-london.com</td><td>Meridian</td></tr>
+        <tr><td>Meridian Paris</td><td>234567890</td><td>https://meridian-paris.com</td><td>Meridian</td></tr>
+        <tr><td>Crestview Bali</td><td>345678901</td><td>https://crestview-bali.com</td><td>Crestview</td></tr>
+      </tbody>
+    </table>
+    <p>Send the updated spreadsheet to the developer. This is now the complete master property file.</p>
+  </div>
+
+  <!-- Step 6 — Competitor mapping -->
+  <div class="step purple avoid-break">
+    <div class="step-header">
+      <div class="step-num">6</div>
+      <div class="step-title">SEO Director maps competitor domains for each property</div>
+      <span class="step-who who-seo">SEO Director</span>
+    </div>
+    <p>For the keyword ranking page to show where competitors rank, the SEO Director provides 2–4 competitor websites per property. Add a new tab or column to the spreadsheet:</p>
+    <table>
+      <thead>
+        <tr><th>Property</th><th>Competitor 1</th><th>Competitor 2</th><th>Competitor 3</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Meridian London</td><td>marriott-london.com</td><td>hilton-london.co.uk</td><td>radisson-hyde.com</td></tr>
+        <tr><td>Crestview Maldives</td><td>soneva-maldives.com</td><td>anantara-maldives.com</td><td>gili-lankanfushi.com</td></tr>
+        <tr><td>Heritage Jaipur</td><td>taj-rambagh.com</td><td>oberoi-rajvilas.com</td><td>aman-bagh.com</td></tr>
+      </tbody>
+    </table>
+    <p>Competitor rankings are fetched from third-party tools (SEMrush/Ahrefs API). If not yet available, this section will show "—" until the tool is connected.</p>
+  </div>
+
+
+  <!-- ══ PHASE 3 ══ -->
+  <div class="page-break"></div>
+  <h2><span class="phase-num">3</span> Developer Technical Setup</h2>
+  <p>Once the SEO Director has granted all permissions and provided the spreadsheet, the developer builds the data connections.</p>
+
+  <!-- Step 7 -->
+  <div class="step blue avoid-break">
+    <div class="step-header">
+      <div class="step-num">7</div>
+      <div class="step-title">Developer sets up the project codebase</div>
+      <span class="step-who who-dev">Developer</span>
+    </div>
+    <p>The dashboard code is already built and stored on GitHub. The developer clones it and installs dependencies:</p>
+    <div class="code-block"><span class="comment"># 1. Clone the repository</span>
+git clone https://github.com/parvinderdhillon90/seo.git
+cd seo
+
+<span class="comment"># 2. Switch to the dashboard branch</span>
+git checkout claude/analytics-central-dashboard-96gaux
+
+<span class="comment"># 3. Go into the project folder</span>
+cd seo-dashboard
+
+<span class="comment"># 4. Install all packages</span>
+npm install
+
+<span class="comment"># 5. Start the development server</span>
+npm run dev
+<span class="comment"># → Open http://localhost:3000 to see it running</span></div>
+  </div>
+
+  <!-- Step 8 -->
+  <div class="step blue avoid-break">
+    <div class="step-header">
+      <div class="step-num">8</div>
+      <div class="step-title">Developer creates the environment variables file</div>
+      <span class="step-who who-dev">Developer</span>
+    </div>
+    <p>Credentials are stored in a <code>.env.local</code> file — this is never committed to GitHub. The developer creates this file inside the <code>seo-dashboard/</code> folder:</p>
+    <div class="code-block"><span class="comment"># seo-dashboard/.env.local</span>
+<span class="comment"># — Google Service Account Credentials —</span>
+<span class="key">GA4_CLIENT_EMAIL</span>=<span class="val">analytics-dashboard@agency-project.iam.gserviceaccount.com</span>
+<span class="key">GA4_PRIVATE_KEY</span>=<span class="val">"-----BEGIN PRIVATE KEY-----\nMIIEvQ...\n-----END PRIVATE KEY-----\n"</span>
+
+<span class="comment"># — Database (Supabase) —</span>
+<span class="key">SUPABASE_URL</span>=<span class="val">https://yourproject.supabase.co</span>
+<span class="key">SUPABASE_ANON_KEY</span>=<span class="val">eyJhbGciOiJ...</span>
+
+<span class="comment"># — Optional: Third-party keyword tool —</span>
+<span class="key">SEMRUSH_API_KEY</span>=<span class="val">your-api-key-here</span></div>
+    <div class="info-box alert" style="margin-top:10px;">
+      <div class="icon">🔐</div>
+      <p><strong>Security:</strong> The <code>.env.local</code> file must never be shared publicly or committed to GitHub. It contains secret credentials. The developer adds it to <code>.gitignore</code> to prevent accidental uploads.</p>
+    </div>
+  </div>
+
+  <!-- Step 9 -->
+  <div class="step blue avoid-break">
+    <div class="step-header">
+      <div class="step-num">9</div>
+      <div class="step-title">Developer sets up the database (Supabase)</div>
+      <span class="step-who who-dev">Developer</span>
+    </div>
+    <p>A database stores all the analytics data so the dashboard loads instantly without calling Google APIs on every page view. The recommended free database is <strong>Supabase</strong>.</p>
+    <ol>
+      <li>Go to <strong>supabase.com</strong> → Create a free account</li>
+      <li>Create a new project → name it <em>"analytics-dashboard"</em></li>
+      <li>Copy the <strong>Project URL</strong> and <strong>Anon Key</strong> into <code>.env.local</code></li>
+      <li>Developer creates the database tables for properties, metrics, and keywords</li>
+    </ol>
+    <p>The database structure the developer builds:</p>
+    <table>
+      <thead><tr><th>Table</th><th>What it stores</th></tr></thead>
+      <tbody>
+        <tr><td><strong>properties</strong></td><td>All 800+ property names, GA4 IDs, Search Console URLs, chain grouping</td></tr>
+        <tr><td><strong>daily_metrics</strong></td><td>Traffic, bounce rate, conversions, room nights, revenue per property per day</td></tr>
+        <tr><td><strong>keyword_rankings</strong></td><td>Keyword, rank, previous rank, URL, property ID — updated daily</td></tr>
+        <tr><td><strong>competitors</strong></td><td>Competitor domains mapped to each property</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Step 10 -->
+  <div class="step blue avoid-break">
+    <div class="step-header">
+      <div class="step-num">10</div>
+      <div class="step-title">Developer builds the nightly data sync job</div>
+      <span class="step-who who-dev">Developer</span>
+    </div>
+    <p>This is the most critical piece. A scheduled job runs automatically every night at midnight and refreshes all data for 800+ properties. The dashboard then reads from the database — making it fast and reliable.</p>
+    <p><strong>The sync job does this every night:</strong></p>
+    <ol>
+      <li>Loops through all 800+ properties from the database</li>
+      <li>Calls <strong>GA4 API</strong> for each property → gets sessions, organic traffic, bounce rate, conversions, new vs returning users</li>
+      <li>Calls <strong>Search Console API</strong> for each property → gets keyword positions, clicks, impressions</li>
+      <li>Calculates the <strong>vs Last Month %</strong> and <strong>vs Last Year %</strong> change</li>
+      <li>Assigns <strong>status</strong> (critical / warning / healthy) based on traffic trends</li>
+      <li>Saves everything to the database</li>
+      <li>Dashboard displays fresh data the next morning</li>
+    </ol>
+    <div class="info-box tip">
+      <div class="icon">⏱</div>
+      <p><strong>Why nightly?</strong> Calling GA4 API for 800+ properties in real-time would take too long and hit rate limits. The nightly sync pre-fetches everything and stores it — so the dashboard loads in under 1 second regardless of how many properties you have.</p>
+    </div>
+  </div>
+
+  <!-- Step 11 -->
+  <div class="step blue avoid-break">
+    <div class="step-header">
+      <div class="step-num">11</div>
+      <div class="step-title">Developer deploys the dashboard to Vercel</div>
+      <span class="step-who who-dev">Developer</span>
+    </div>
+    <p>Vercel is a free hosting platform built for Next.js. It gives you a live URL you can open from any device.</p>
+    <ol>
+      <li>Go to <strong>vercel.com</strong> → Sign in with GitHub</li>
+      <li>Click <strong>Import Project</strong> → Select the <code>parvinderdhillon90/seo</code> repository</li>
+      <li>Set the <strong>Root Directory</strong> to <code>seo-dashboard</code></li>
+      <li>Add all environment variables from <code>.env.local</code> in the Vercel settings panel</li>
+      <li>Click <strong>Deploy</strong></li>
+      <li>Vercel gives you a URL: <code>https://agency-analytics.vercel.app</code></li>
+    </ol>
+    <p>From this point, every time the developer pushes code to GitHub, the live dashboard updates automatically.</p>
+  </div>
+
+
+  <!-- ══ PHASE 4 ══ -->
+  <div class="page-break"></div>
+  <h2><span class="phase-num">4</span> Room Nights & Revenue — Booking Engine</h2>
+  <p>Revenue and room night data comes from your booking engine or PMS (Property Management System). The connection method depends on which system your clients use.</p>
+
+  <!-- Step 12 -->
+  <div class="step amber avoid-break">
+    <div class="step-header">
+      <div class="step-num">12</div>
+      <div class="step-title">Identify the booking system and integration method</div>
+      <span class="step-who who-you">You</span>
+    </div>
+    <p>Your hotel clients use one or more of these systems. Identify which ones apply and share the details with your developer:</p>
+    <table>
+      <thead><tr><th>Booking System</th><th>Integration Method</th><th>Difficulty</th></tr></thead>
+      <tbody>
+        <tr><td><strong>SynXis (Sabre)</strong></td><td>Direct API connection</td><td><span class="badge badge-amber">Medium</span></td></tr>
+        <tr><td><strong>Mews</strong></td><td>Mews REST API (well documented)</td><td><span class="badge badge-green">Easy</span></td></tr>
+        <tr><td><strong>Apaleo</strong></td><td>Apaleo Open API</td><td><span class="badge badge-green">Easy</span></td></tr>
+        <tr><td><strong>Opera PMS</strong></td><td>Opera REST API or data export</td><td><span class="badge badge-amber">Medium</span></td></tr>
+        <tr><td><strong>Cloudbeds</strong></td><td>Cloudbeds API</td><td><span class="badge badge-green">Easy</span></td></tr>
+        <tr><td><strong>Booking.com Connectivity</strong></td><td>Channel Manager API</td><td><span class="badge badge-amber">Medium</span></td></tr>
+        <tr><td><strong>GA4 Ecommerce Tracking</strong></td><td>Already in GA4 — no extra work</td><td><span class="badge badge-green">Easiest</span></td></tr>
+        <tr><td><strong>Manual / Excel</strong></td><td>Daily CSV upload to shared folder</td><td><span class="badge badge-green">Easy</span></td></tr>
+      </tbody>
+    </table>
+    <div class="info-box tip">
+      <div class="icon">✅</div>
+      <p><strong>Quickest option:</strong> If your booking engine already fires <strong>GA4 ecommerce purchase events</strong> (which many modern booking engines do), then revenue and room nights are already inside GA4 — the developer just needs to fetch those events. Ask your developer to check <em>GA4 → Reports → Monetisation → Ecommerce</em> for one property to confirm.</p>
+    </div>
+  </div>
+
+  <!-- Step 13 -->
+  <div class="step amber avoid-break">
+    <div class="step-header">
+      <div class="step-num">13</div>
+      <div class="step-title">SEO Director / Operations provides booking engine credentials</div>
+      <span class="step-who who-seo">SEO Director</span>
+    </div>
+    <p>Securely share the following with the developer (use a password manager like 1Password or a secure note — never email credentials):</p>
+    <ul>
+      <li>Booking engine name and version</li>
+      <li>API key or OAuth credentials</li>
+      <li>API documentation URL</li>
+      <li>Which metrics to pull: room nights booked, total revenue, booking date, check-in date</li>
+    </ul>
+    <p>If using the CSV method: set up a shared Google Drive folder where hotel managers drop the daily report file each morning. The developer's sync job picks it up automatically.</p>
+  </div>
+
+
+  <!-- ══ PHASE 5 ══ -->
+  <h2><span class="phase-num">5</span> Pilot Test & Full Rollout</h2>
+
+  <!-- Step 14 -->
+  <div class="step green avoid-break">
+    <div class="step-header">
+      <div class="step-num">14</div>
+      <div class="step-title">Run a pilot with one chain first</div>
+      <span class="step-who who-all">Everyone</span>
+    </div>
+    <p>Before connecting all 800+ properties, test with one chain (10–15 properties) to confirm everything works correctly.</p>
+    <ol>
+      <li>SEO Director adds service account to one chain's GA4 properties and Search Console sites</li>
+      <li>Developer connects just those properties and runs the sync job</li>
+      <li>You review the dashboard — verify the numbers match what you see in GA4 directly</li>
+      <li>Check: organic traffic ✓ vs last month % ✓ keyword positions ✓ new/returning users ✓</li>
+      <li>If everything looks correct → proceed to full rollout</li>
+    </ol>
+  </div>
+
+  <!-- Step 15 -->
+  <div class="step green avoid-break">
+    <div class="step-header">
+      <div class="step-num">15</div>
+      <div class="step-title">Full rollout to all properties</div>
+      <span class="step-who who-all">Everyone</span>
+    </div>
+    <p>Once the pilot is confirmed working:</p>
+    <ol>
+      <li>SEO Director (or developer's bulk script) adds service account to all remaining GA4 properties</li>
+      <li>SEO Director adds service account to all remaining Search Console sites</li>
+      <li>Developer runs the full nightly sync for all 800+ properties</li>
+      <li>Dashboard goes live with real data at the Vercel URL</li>
+      <li>You access the dashboard from any browser, anywhere</li>
+    </ol>
+  </div>
+
+
+  <!-- ══ TIMELINE ══ -->
+  <div class="page-break"></div>
+  <h2><span class="phase-num">📅</span> Full Project Timeline</h2>
+
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="timeline-left">
+        <div class="timeline-dot">1</div>
+        <div class="timeline-line"></div>
+      </div>
+      <div class="timeline-content">
+        <div class="timeline-week">Week 1</div>
+        <div class="timeline-title">Setup & Permissions</div>
+        <ul class="timeline-tasks">
+          <li>Developer creates Google Cloud project and service account</li>
+          <li>Developer sends service account email to SEO Director</li>
+          <li>SEO Director adds service account to pilot chain (10–15 properties) in GA4</li>
+          <li>SEO Director adds service account to same sites in Search Console</li>
+          <li>SEO Director begins preparing the full property spreadsheet</li>
+        </ul>
+        <div class="timeline-who-row">
+          <span class="badge badge-indigo">Developer</span>
+          <span class="badge badge-green">SEO Director</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="timeline-item">
+      <div class="timeline-left">
+        <div class="timeline-dot">2</div>
+        <div class="timeline-line"></div>
+      </div>
+      <div class="timeline-content">
+        <div class="timeline-week">Week 2</div>
+        <div class="timeline-title">Pilot Integration</div>
+        <ul class="timeline-tasks">
+          <li>Developer installs GA4 Data API and Search Console API packages</li>
+          <li>Developer builds API routes and connects pilot chain data</li>
+          <li>Developer sets up Supabase database and nightly sync job</li>
+          <li>Pilot chain data appears in the dashboard with real numbers</li>
+          <li>You review the pilot — verify data accuracy against GA4 directly</li>
+        </ul>
+        <div class="timeline-who-row">
+          <span class="badge badge-indigo">Developer</span>
+          <span class="badge badge-gray">You (review)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="timeline-item">
+      <div class="timeline-left">
+        <div class="timeline-dot">3</div>
+        <div class="timeline-line"></div>
+      </div>
+      <div class="timeline-content">
+        <div class="timeline-week">Week 3</div>
+        <div class="timeline-title">Full Property Rollout</div>
+        <ul class="timeline-tasks">
+          <li>SEO Director (+ developer bulk script) adds service account to all remaining GA4 properties</li>
+          <li>SEO Director adds service account to all remaining Search Console sites</li>
+          <li>SEO Director finalises and submits the full property spreadsheet</li>
+          <li>Developer imports all 800+ properties into the database</li>
+          <li>First full nightly sync runs across all properties</li>
+        </ul>
+        <div class="timeline-who-row">
+          <span class="badge badge-green">SEO Director</span>
+          <span class="badge badge-indigo">Developer</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="timeline-item">
+      <div class="timeline-left">
+        <div class="timeline-dot">4</div>
+        <div class="timeline-line"></div>
+      </div>
+      <div class="timeline-content">
+        <div class="timeline-week">Week 4</div>
+        <div class="timeline-title">Deploy & Go Live</div>
+        <ul class="timeline-tasks">
+          <li>Developer deploys dashboard to Vercel with live URL</li>
+          <li>You access the full dashboard — all chains, all properties, real data</li>
+          <li>Team reviews keyword rankings page for pilot properties</li>
+          <li>Reports & Crux page generates real-data summaries</li>
+          <li>Any fixes or adjustments based on feedback</li>
+        </ul>
+        <div class="timeline-who-row">
+          <span class="badge badge-indigo">Developer</span>
+          <span class="badge badge-gray">You (review)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="timeline-item">
+      <div class="timeline-left">
+        <div class="timeline-dot">5</div>
+        <div class="timeline-line"></div>
+      </div>
+      <div class="timeline-content">
+        <div class="timeline-week">Week 5–6</div>
+        <div class="timeline-title">Revenue & Advanced Features</div>
+        <ul class="timeline-tasks">
+          <li>Developer connects booking engine API for room nights and revenue</li>
+          <li>Or: CSV upload process set up if no API is available</li>
+          <li>Optional: SEMrush / Ahrefs API added for search volume and competitor data</li>
+          <li>Dashboard fully live with all data sources connected</li>
+        </ul>
+        <div class="timeline-who-row">
+          <span class="badge badge-indigo">Developer</span>
+          <span class="badge badge-green">SEO Director</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══ CHECKLIST ══ -->
+  <div class="page-break"></div>
+  <h2><span class="phase-num">✅</span> Master Checklist</h2>
+  <p>Use this checklist to track progress. Tick each item off as it is completed.</p>
+
+  <h3>SEO Director Checklist</h3>
+  <ul class="checklist">
+    <li>Received service account email from developer</li>
+    <li>Added service account as Viewer to all GA4 properties (pilot chain first)</li>
+    <li>Added service account as Full User to all Search Console properties (pilot chain first)</li>
+    <li>Prepared and submitted the full property spreadsheet (GA4 Property IDs + Search Console URLs)</li>
+    <li>Added competitor domains for each property in the spreadsheet</li>
+    <li>Bulk-added service account to all remaining GA4 properties</li>
+    <li>Bulk-added service account to all remaining Search Console sites</li>
+    <li>Confirmed all Search Console sites are verified (green tick)</li>
+    <li>Provided booking engine API credentials or arranged CSV export process</li>
+  </ul>
+
+  <h3>Developer Checklist</h3>
+  <ul class="checklist">
+    <li>Created Google Cloud project and enabled GA4 Data API + Search Console API</li>
+    <li>Created service account and sent email address to SEO Director</li>
+    <li>Cloned the GitHub repo and confirmed dashboard runs locally</li>
+    <li>Created <code>.env.local</code> file with service account credentials</li>
+    <li>Imported property spreadsheet into the database (Supabase)</li>
+    <li>Built GA4 API connection and tested with pilot chain</li>
+    <li>Built Search Console API connection and tested keyword data</li>
+    <li>Built nightly sync job and confirmed it runs successfully</li>
+    <li>Deployed dashboard to Vercel with all environment variables</li>
+    <li>Shared live Vercel URL with the team</li>
+    <li>Connected booking engine API for room nights and revenue</li>
+    <li>Added bulk-add script for GA4 property permissions (optional but saves time)</li>
+  </ul>
+
+  <h3>Your Checklist (Agency Owner)</h3>
+  <ul class="checklist">
+    <li>Briefed SEO Director on this guide and their tasks</li>
+    <li>Briefed developer on this guide and shared GitHub repo link</li>
+    <li>Approved Supabase database creation (free tier)</li>
+    <li>Approved Vercel deployment (free tier)</li>
+    <li>Reviewed pilot dashboard data and confirmed accuracy</li>
+    <li>Approved full rollout to all 800+ properties</li>
+    <li>Confirmed live dashboard URL accessible by the team</li>
+  </ul>
+
+
+  <!-- ══ MESSAGE TEMPLATES ══ -->
+  <h2><span class="phase-num">✉</span> Message Templates</h2>
+
+  <h3>Message to Your Developer</h3>
+  <div class="message-box">
+    <div class="msg-label">📧 Copy and send this to your developer</div>
+    Hi,<br><br>
+    Please set up the integration for our Analytics Central Dashboard. Here are the details:<br><br>
+    <span class="highlight">Repository:</span> github.com/parvinderdhillon90/seo<br>
+    <span class="highlight">Branch:</span> claude/analytics-central-dashboard-96gaux<br>
+    <span class="highlight">Project folder:</span> seo-dashboard/<br><br>
+    <span class="highlight">Steps needed:</span><br>
+    1. Create a Google Cloud project, enable GA4 Data API and Search Console API<br>
+    2. Create a service account — send me the email address so I can forward to our SEO Director<br>
+    3. Set up a Supabase database for data storage<br>
+    4. Build nightly sync job to pull data from GA4 + Search Console for all our properties<br>
+    5. Deploy to Vercel once data is confirmed working<br>
+    6. Connect our booking engine — I will share credentials separately<br><br>
+    Our SEO Director will add the service account to all GA4 properties and Search Console sites once you provide the email. They will also send you a spreadsheet with all GA4 Property IDs and Search Console URLs.<br><br>
+    Please see the full step-by-step integration guide attached. Let me know if you have questions.
+  </div>
+
+  <h3>Message to Your SEO Director</h3>
+  <div class="message-box">
+    <div class="msg-label">📧 Copy and send this to your SEO Director</div>
+    Hi,<br><br>
+    We are integrating our client data into a new central analytics dashboard. I need your help with the following:<br><br>
+    <span class="highlight">Step 1 — Wait for developer:</span><br>
+    Our developer will send you a service account email address. It will look like:<br>
+    analytics-dashboard@agency-project.iam.gserviceaccount.com<br><br>
+    <span class="highlight">Step 2 — Add to GA4 (all properties):</span><br>
+    For every client GA4 property: Admin → Property Access Management → Add the service account as <strong>Viewer</strong><br><br>
+    <span class="highlight">Step 3 — Add to Search Console (all sites):</span><br>
+    For every client website in Search Console: Settings → Users and permissions → Add the service account as <strong>Full</strong><br><br>
+    <span class="highlight">Step 4 — Prepare the spreadsheet:</span><br>
+    Export a spreadsheet with: Property Name, GA4 Property ID, Search Console URL, Chain/Brand, Location, Competitor Domains (2–3 per property)<br><br>
+    Please start with one chain as a pilot, then we will roll out to all properties. See the full guide attached for detailed screenshots and instructions.
+  </div>
+
+
+  <!-- ══ FAQ ══ -->
+  <h2><span class="phase-num">❓</span> Frequently Asked Questions</h2>
+
+  <div class="step avoid-break">
+    <div class="step-header"><div class="step-num" style="background:#6b7280;">Q</div><div class="step-title">Is this safe? Will clients' data be exposed?</div></div>
+    <p>The service account has <strong>read-only (Viewer)</strong> access — it cannot change any settings, create reports, or delete anything in GA4. It can only read the data. The dashboard is password-protected via Vercel's access controls. No client data is shared with third parties.</p>
+  </div>
+
+  <div class="step avoid-break">
+    <div class="step-header"><div class="step-num" style="background:#6b7280;">Q</div><div class="step-title">Does this cost anything?</div></div>
+    <p><strong>Google APIs:</strong> Free (GA4 Data API and Search Console API are free for standard usage volumes).<br>
+    <strong>Supabase:</strong> Free tier covers up to 500MB database — more than enough for 800 properties.<br>
+    <strong>Vercel:</strong> Free tier covers the dashboard hosting.<br>
+    <strong>SEMrush/Ahrefs:</strong> Optional paid add-on for competitor data and search volume. Not required to go live.</p>
+  </div>
+
+  <div class="step avoid-break">
+    <div class="step-header"><div class="step-num" style="background:#6b7280;">Q</div><div class="step-title">How accurate are the keyword positions from Search Console?</div></div>
+    <p>Very accurate — it comes directly from Google. The position shown is the <strong>average ranking position</strong> over the selected date range. For a single day, it reflects exactly where your page appeared in Google search results. Note: Search Console data has a <strong>2–3 day delay</strong> before it appears in the API.</p>
+  </div>
+
+  <div class="step avoid-break">
+    <div class="step-header"><div class="step-num" style="background:#6b7280;">Q</div><div class="step-title">What if a client does not have Search Console set up?</div></div>
+    <p>The developer can help set up Search Console verification for any missing properties. Common methods: adding a Google Tag Manager tag (easiest if GTM is already on the site), adding a DNS TXT record, or uploading an HTML verification file to the server. The SEO Director should identify which client sites are missing and prioritise verification.</p>
+  </div>
+
+  <div class="step avoid-break">
+    <div class="step-header"><div class="step-num" style="background:#6b7280;">Q</div><div class="step-title">Can the team download reports to send to clients?</div></div>
+    <p>Yes. The <strong>Reports & Crux</strong> page has a <strong>Download PDF</strong> button and a <strong>Copy to Clipboard</strong> button. Select the chain or specific property, and the system auto-generates an executive summary with traffic analysis, keyword performance, conversion insights, and prioritised recommendations — ready to send to the client as-is or with minor edits.</p>
+  </div>
+
+
+  <!-- ══ FOOTER ══ -->
+  <div class="doc-footer">
+    <p><strong>Analytics Central Dashboard — Integration Setup Guide</strong></p>
+    <p style="margin-top:4px;">Confidential · For internal use only · Multi-Chain Hotel Analytics (800+ Properties)</p>
+    <p style="margin-top:4px;">Dashboard Repository: github.com/parvinderdhillon90/seo · Branch: claude/analytics-central-dashboard-96gaux</p>
+  </div>
+
+</div>
+
+<script>
+  // Auto-set today's date in cover if needed
+</script>
+</body>
+</html>
