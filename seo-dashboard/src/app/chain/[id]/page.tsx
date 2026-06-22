@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, AlertTriangle, TrendingUp, BedDouble, DollarSign, Percent, Activity } from "lucide-react";
-import { getChain } from "@/lib/mockData";
+import { useChainsContext } from "@/contexts/ChainsContext";
 import TrendBadge from "@/components/common/TrendBadge";
 import PropertiesTable from "@/components/chain/PropertiesTable";
 
@@ -30,7 +30,16 @@ function StatCard({ label, value, sub, icon: Icon, highlight }: {
 
 export default function ChainPage() {
   const params = useParams();
-  const chain = getChain(params.id as string);
+  const { chains, loading } = useChainsContext();
+  const chain = chains.find((c) => c.id === (params.id as string));
+
+  if (loading) {
+    return (
+      <main className="flex-1 flex items-center justify-center">
+        <div className="text-gray-400 text-sm">Loading…</div>
+      </main>
+    );
+  }
 
   if (!chain) {
     return (

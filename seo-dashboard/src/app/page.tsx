@@ -3,29 +3,42 @@
 import { BarChart3, Building2, TrendingUp, AlertTriangle, DollarSign, BedDouble } from "lucide-react";
 import ChainsTable from "@/components/overview/ChainsTable";
 import AlertBanner from "@/components/overview/AlertBanner";
-import { chains, getAllCriticalProperties, getAllWarningProperties } from "@/lib/mockData";
+import { useChainsContext } from "@/contexts/ChainsContext";
 
 function fmt(n: number) {
   return n >= 1000000 ? `${(n / 1000000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(0)}k` : n.toString();
 }
 
 export default function OverviewPage() {
-  const critical = getAllCriticalProperties();
-  const warning = getAllWarningProperties();
+  const { chains, loading } = useChainsContext();
+
+  if (loading) {
+    return (
+      <main className="flex-1 flex items-center justify-center">
+        <div className="text-gray-400 text-sm">Loading dashboard…</div>
+      </main>
+    );
+  }
+
+  const critical = chains.flatMap((c) =>
+    c.properties.filter((p) => p.status === "critical").map((p) => ({ ...p, chainName: c.name, chainId: c.id }))
+  );
+  const warning = chains.flatMap((c) =>
+    c.properties.filter((p) => p.status === "warning").map((p) => ({ ...p, chainName: c.name, chainId: c.id }))
+  );
 
   const totalProperties = chains.reduce((s, c) => s + c.properties.length, 0);
-  const totalOrganic = chains.reduce((s, c) => s + c.metrics.organicTraffic.current, 0);
-  const totalRevenue = chains.reduce((s, c) => s + c.metrics.totalRevenue, 0);
+  const totalOrganic    = chains.reduce((s, c) => s + c.metrics.organicTraffic.current, 0);
+  const totalRevenue    = chains.reduce((s, c) => s + c.metrics.totalRevenue, 0);
   const totalRoomNights = chains.reduce((s, c) => s + c.metrics.totalRoomNights, 0);
-  const avgConv = (chains.reduce((s, c) => s + c.metrics.avgConversionRate, 0) / chains.length).toFixed(1);
 
   const summaryCards = [
-    { label: "Total Chains", value: chains.length.toString(), icon: Building2, color: "bg-indigo-50 text-indigo-600", border: "border-indigo-100" },
-    { label: "Total Properties", value: totalProperties.toString(), icon: BarChart3, color: "bg-cyan-50 text-cyan-600", border: "border-cyan-100" },
-    { label: "Total Organic Traffic", value: fmt(totalOrganic), icon: TrendingUp, color: "bg-emerald-50 text-emerald-600", border: "border-emerald-100" },
-    { label: "Properties Critical", value: critical.length.toString(), icon: AlertTriangle, color: critical.length > 0 ? "bg-red-50 text-red-500" : "bg-gray-50 text-gray-400", border: critical.length > 0 ? "border-red-100" : "border-gray-100" },
-    { label: "Total Room Nights", value: totalRoomNights.toLocaleString(), icon: BedDouble, color: "bg-purple-50 text-purple-600", border: "border-purple-100" },
-    { label: "Total Revenue", value: `$${(totalRevenue / 1000000).toFixed(2)}M`, icon: DollarSign, color: "bg-amber-50 text-amber-600", border: "border-amber-100" },
+    { label: "Total Chains",          value: chains.length.toString(),                    icon: Building2,     color: "bg-indigo-50 text-indigo-600",  border: "border-indigo-100" },
+    { label: "Total Properties",      value: totalProperties.toString(),                  icon: BarChart3,     color: "bg-cyan-50 text-cyan-600",      border: "border-cyan-100" },
+    { label: "Total Organic Traffic", value: fmt(totalOrganic),                           icon: TrendingUp,    color: "bg-emerald-50 text-emerald-600",border: "border-emerald-100" },
+    { label: "Properties Critical",   value: critical.length.toString(),                  icon: AlertTriangle, color: critical.length > 0 ? "bg-red-50 text-red-500" : "bg-gray-50 text-gray-400", border: critical.length > 0 ? "border-red-100" : "border-gray-100" },
+    { label: "Total Room Nights",     value: totalRoomNights.toLocaleString(),            icon: BedDouble,     color: "bg-purple-50 text-purple-600",  border: "border-purple-100" },
+    { label: "Total Revenue",         value: `$${(totalRevenue / 1000000).toFixed(2)}M`, icon: DollarSign,    color: "bg-amber-50 text-amber-600",    border: "border-amber-100" },
   ];
 
   return (

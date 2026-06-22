@@ -3,13 +3,14 @@
 import { useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChevronDown, FileText } from "lucide-react";
-import { chains } from "@/lib/mockData";
 import ReportContent from "@/components/reports/ReportContent";
 import StatusBadge from "@/components/common/StatusBadge";
+import { useChainsContext } from "@/contexts/ChainsContext";
 
 function ReportsInner() {
   const searchParams = useSearchParams();
-  const initialChainId = searchParams.get("chain") ?? chains[0].id;
+  const { chains, loading } = useChainsContext();
+  const initialChainId = searchParams.get("chain") ?? (chains[0]?.id ?? "");
   const initialPropId = searchParams.get("property") ?? null;
 
   const [selectedChainId, setSelectedChainId] = useState(initialChainId);
@@ -20,12 +21,20 @@ function ReportsInner() {
     initialPropId ?? chains.find((c) => c.id === initialChainId)?.properties[0]?.id ?? ""
   );
 
+  if (loading) {
+    return (
+      <main className="flex-1 flex items-center justify-center">
+        <div className="text-gray-400 text-sm">Loading…</div>
+      </main>
+    );
+  }
+
   const selectedChain = useMemo(
     () => chains.find((c) => c.id === selectedChainId) ?? chains[0],
-    [selectedChainId]
+    [chains, selectedChainId]
   );
   const selectedProperty = useMemo(
-    () => selectedChain.properties.find((p) => p.id === selectedPropertyId) ?? selectedChain.properties[0],
+    () => selectedChain?.properties.find((p) => p.id === selectedPropertyId) ?? selectedChain?.properties[0],
     [selectedChain, selectedPropertyId]
   );
 

@@ -13,7 +13,7 @@ import {
   BarChart3,
   AlertTriangle,
 } from "lucide-react";
-import { chains } from "@/lib/mockData";
+import { useChainsContext } from "@/contexts/ChainsContext";
 
 const statusColors: Record<string, string> = {
   critical: "bg-red-500",
@@ -24,6 +24,7 @@ const statusColors: Record<string, string> = {
 export default function Sidebar() {
   const pathname = usePathname();
   const [chainsOpen, setChainsOpen] = useState(true);
+  const { chains } = useChainsContext();
 
   const totalCritical = chains.reduce((s, c) => s + c.metrics.criticalCount, 0);
 
